@@ -60,6 +60,7 @@ contract StarfleetStake is Ownable {
 // Functional requirement FR1
  function depositTokens(uint256 amount) public {
 
+  require(amount>0);
   require(now >= tZero);
   require(now < tZero + BOARDING_PERIOD_LENGTH);
   require(token.balanceOf(address(this)) + amount <= MAX_THRESHOLD, "Sender cannot deposit amounts that would cross the MAX_THRESHOLD");
@@ -117,7 +118,7 @@ function fallbackWithdrawTokens() public {
   uint256 amount = StarTRAC_snapshot[msg.sender];
   StarTRAC_snapshot[msg.sender] = 0;
   token.transfer(msg.sender, amount);
-  emit TokenFallbackWithdrawn(msg.sender, StarTRAC_snapshot[msg.sender]);
+  emit TokenFallbackWithdrawn(msg.sender, amount);
   
 
 }
@@ -144,7 +145,7 @@ function transferTokens(address custodian) onlyOwner public {
   require(now >= tZero + BOARDING_PERIOD_LENGTH + LOCK_PERIOD_LENGTH && now < tZero + BOARDING_PERIOD_LENGTH + LOCK_PERIOD_LENGTH + BRIDGE_PERIOD_LENGTH);
 
   uint256 balanceTransferred= token.balanceOf(address(this));
-  token.transfer(custodian, token.balanceOf(address(this)));
+  token.transfer(custodian, balanceTransferred);
   
   emit TokenTransferred(custodian, balanceTransferred);
 }

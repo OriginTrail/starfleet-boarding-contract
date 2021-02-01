@@ -87,6 +87,12 @@ contract('StarfleetStake', async function(accounts) {
 
 		describe('TH1 - Token holders must be able to deposit TRAC during the boarding period', function() {
 
+
+			it('Token holders cannot try to deposit a zero amount',async function(){
+				let approve = await token.approve(stakingContract.address, 1000, {from: accounts[0]});
+				await truffleAssert.reverts( stakingContract.depositTokens(0, {from: accounts[0]}) );
+			});
+
 			it('Token holder can deposit 1000 tokens before boarding period has expired', async function() {
 				assert.equal(await token.balanceOf( stakingContract.address), 0);
 				let sendTokensToAccount3 = await token.transfer(accounts[3],1000, {from: accounts[0]});
