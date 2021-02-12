@@ -159,5 +159,22 @@ function transferTokens(address custodian) onlyOwner public {
   emit TokenTransferred(custodian, balanceTransferred);
 }
 
+function withdrawMisplacedEther() onlyOwner public {
+    uint256 balance = address(this).balance;
+    if (balance > 0) {
+        msg.sender.transfer(balance);
+    }
+}
+
+function withdrawMisplacedTokens(address tokenContractAddress) onlyOwner public {
+    require(tokenContractAddress != address(token), "Cannot use this function with the TRAC contract");
+    IERC20 tokenContract = IERC20(tokenContractAddress);
+
+    uint256 balance = tokenContract.balanceOf(address(this));
+    if (balance > 0) {
+        bool transactionResult = tokenContract.transfer(msg.sender, balance);
+        require(transactionResult, "Token transaction execution failed");
+    }
+}
 
 }
