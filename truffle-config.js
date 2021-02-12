@@ -100,5 +100,6 @@
       //  evmVersion: "byzantium"
       // }
     }
-  }
+  },
+  plugins: ["solidity-coverage"]
 };
