@@ -42,7 +42,7 @@ contract StarfleetStake is Ownable {
 
   constructor(uint256 startTime,address tokenAddress)  public {
 
-    if(startTime!=0){
+    if(startTime > now){
       tZero = startTime;
     }else{
       tZero = now;  
