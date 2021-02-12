@@ -13,7 +13,7 @@ contract StarfleetStake is Ownable {
   uint256 public constant MIN_THRESHOLD = 2e25;
 
   // maximum number of tokens allowed to be onboarded
-  uint256 public constant MAX_THRESHOLD = 5e25;
+  uint256 public constant MAX_THRESHOLD = 10e25;
   
   // Time periods
 

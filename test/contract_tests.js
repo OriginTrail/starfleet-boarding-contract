@@ -15,7 +15,7 @@ const million = new web3.utils.toBN('1000000').mul(e18);
 const ETHER = e18;
 
 const MIN_THRESHOLD = web3.utils.toBN('20').mul(million); //
-const MAX_THRESHOLD = web3.utils.toBN('50').mul(million); //
+const MAX_THRESHOLD = web3.utils.toBN('100').mul(million); //
 
 let owner;
 let stakingContract;
