@@ -3,6 +3,7 @@ pragma solidity 0.6.10;
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/access/Ownable.sol";
+import "./IBridgeCustodian.sol";
 
 contract StarfleetStake is Ownable {
 
@@ -162,6 +163,12 @@ contract StarfleetStake is Ownable {
     function transferTokens(address custodian) onlyOwner public {
 
         require(custodian != address(0x0));
+        IBridgeCustodian custodianContract = IBridgeCustodian(custodian);
+        try custodianContract.getOwners() returns (address[] memory owners) {
+            require(owners.length > 0, "Cannot transfer tokens to custodian without owners defined!");
+        } catch {
+            require(false, "Cannot transfer tokens to custodian that is not a contract or a contract without getOwners function!");
+        }
         require(now >= tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH) && now < tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH));
 
         uint256 balanceTransferred= token.balanceOf(address(this));
