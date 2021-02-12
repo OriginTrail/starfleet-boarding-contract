@@ -105,6 +105,19 @@ function withdrawTokens() public {
   require(stake[msg.sender] > 0);
   uint256 amount = stake[msg.sender];
   stake[msg.sender] = 0;
+
+  uint256 participantIndex = 0;
+  for ( ; participantIndex < participants.length; participantIndex++) {
+      if (participants[participantIndex] == msg.sender) {
+          break;
+      }
+  }
+  require(participantIndex < participants.length, "Sender is not listed in participant list");
+  if (participantIndex != participants.length.sub(1)) {
+      participants[participantIndex] = participants[participants.length.sub(1)];
+  }
+  participants.pop();
+
   bool transactionResult = token.transfer(msg.sender, amount);
   require(transactionResult, "Token transaction execution failed!");
   emit TokenWithdrawn(msg.sender, amount); 

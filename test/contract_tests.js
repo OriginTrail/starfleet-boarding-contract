@@ -157,7 +157,7 @@ contract('StarfleetStake', async function(accounts) {
 
 			let withdraw = await stakingContract.withdrawTokens({from: accounts[1]});
 			assert.equal(await stakingContract.getStake( accounts[1]), 0);
-			assert.equal(await stakingContract.getNumberOfParticipants(),1);
+			assert.equal(await stakingContract.getNumberOfParticipants(),0);
 		});
 
 
@@ -175,8 +175,7 @@ contract('StarfleetStake', async function(accounts) {
 
 			let stake = await stakingContract.getStake( accounts[2]);
 			assert.equal(stake.eq(MIN_THRESHOLD), true);
-			let numOfParticipants = await stakingContract.getNumberOfParticipants();
-			assert.equal(numOfParticipants.eq(web3.utils.toBN('2')),true);
+			assert.equal(await stakingContract.getNumberOfParticipants(),1);
 
 			await truffleAssert.reverts( stakingContract.withdrawTokens( {from: accounts[2]} ) );
 
