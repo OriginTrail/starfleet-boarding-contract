@@ -56,6 +56,11 @@ contract StarfleetStake is Ownable {
       }
     
   }
+    
+  // Override Ownable renounceOwnership function
+  function renounceOwnership() public override onlyOwner {
+    require(false, "Cannot renounce ownership of contract");
+  }
 
 // Functional requirement FR1
  function depositTokens(uint256 amount) public {
