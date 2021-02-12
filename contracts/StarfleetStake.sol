@@ -1,20 +1,20 @@
 pragma solidity >=0.6.0 <=0.8.0;
 
-import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/access/Ownable.sol";
 
 contract StarfleetStake is Ownable {
 
   using SafeMath for uint256;
-  ERC20 token;
+  IERC20 token;
 
   // minimum number of tokens for successful onboarding
   uint256 public constant MIN_THRESHOLD = 2e25;
 
   // maximum number of tokens allowed to be onboarded
   uint256 public constant MAX_THRESHOLD = 5e25;
-
+  
   // Time periods
 
   // Official start time of the staking period
@@ -29,7 +29,7 @@ contract StarfleetStake is Ownable {
 
   // participant stakes
   mapping(address => uint256) internal stake;
-
+ 
   // for feature O1
   mapping(address => uint256) internal StarTRAC_snapshot;
 
@@ -44,17 +44,17 @@ contract StarfleetStake is Ownable {
     if(startTime!=0){
       tZero = startTime;
     }else{
-      tZero = now;
+      tZero = now;  
     }
 
     if (tokenAddress!=address(0x0)){
         // for testing purposes
-        token = ERC20(tokenAddress);
+        token = IERC20(tokenAddress);  
       }else{
         // default use TRAC
-        token = ERC20(0xaA7a9CA87d3694B5755f213B5D04094b8d0F0A6F);
+        token = IERC20(0xaA7a9CA87d3694B5755f213B5D04094b8d0F0A6F);    
       }
-
+    
   }
 
 // Functional requirement FR1
@@ -67,10 +67,11 @@ contract StarfleetStake is Ownable {
   require(token.allowance(msg.sender, address(this)) >= amount, "Sender allowance must be equal to or higher than chosen amount");
   require(token.balanceOf(msg.sender) >= amount, "Sender balance must be equal to or higher than chosen amount!");
 
-  token.transferFrom(msg.sender, address(this), amount);
+  bool transactionResult = token.transferFrom(msg.sender, address(this), amount);
+  require(transactionResult, "Token transaction execution failed!");
 
   if (stake[msg.sender] == 0){
-    participants.push(msg.sender);
+    participants.push(msg.sender);  
   }
 
   stake[msg.sender] = stake[msg.sender].add(amount);
@@ -104,8 +105,9 @@ function withdrawTokens() public {
   require(stake[msg.sender] > 0);
   uint256 amount = stake[msg.sender];
   stake[msg.sender] = 0;
-  token.transfer(msg.sender, amount);
-  emit TokenWithdrawn(msg.sender, amount);
+  bool transactionResult = token.transfer(msg.sender, amount);
+  require(transactionResult, "Token transaction execution failed!");
+  emit TokenWithdrawn(msg.sender, amount); 
 
 
 }
@@ -117,9 +119,10 @@ function fallbackWithdrawTokens() public {
   require(StarTRAC_snapshot[msg.sender] > 0);
   uint256 amount = StarTRAC_snapshot[msg.sender];
   StarTRAC_snapshot[msg.sender] = 0;
-  token.transfer(msg.sender, amount);
+  bool transactionResult = token.transfer(msg.sender, amount);
+  require(transactionResult, "Token transaction execution failed!");
   emit TokenFallbackWithdrawn(msg.sender, amount);
-
+  
 
 }
 
@@ -145,8 +148,9 @@ function transferTokens(address custodian) onlyOwner public {
   require(now >= tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH) && now < tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH));
 
   uint256 balanceTransferred= token.balanceOf(address(this));
-  token.transfer(custodian, balanceTransferred);
-
+  bool transactionResult = token.transfer(custodian, balanceTransferred);
+  require(transactionResult, "Token transaction execution failed!");
+  
   emit TokenTransferred(custodian, balanceTransferred);
 }
 
