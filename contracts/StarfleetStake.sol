@@ -1,13 +1,13 @@
 pragma solidity >=0.6.0 <=0.8.0;
 
-import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/access/Ownable.sol";
 
 contract StarfleetStake is Ownable {
 
   using SafeMath for uint256;
-  ERC20 token;
+  IERC20 token;
 
   // minimum number of tokens for successful onboarding
   uint256 public constant MIN_THRESHOLD = 2e25;
@@ -49,10 +49,10 @@ contract StarfleetStake is Ownable {
 
     if (tokenAddress!=address(0x0)){
         // for testing purposes
-        token = ERC20(tokenAddress);  
+        token = IERC20(tokenAddress);  
       }else{
         // default use TRAC
-        token = ERC20(0xaA7a9CA87d3694B5755f213B5D04094b8d0F0A6F);    
+        token = IERC20(0xaA7a9CA87d3694B5755f213B5D04094b8d0F0A6F);    
       }
     
   }
