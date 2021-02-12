@@ -166,6 +166,51 @@ contract('StarfleetStake', async function(accounts) {
 			assert.equal(await stakingContract.getNumberOfParticipants(),0);
 		});
 
+		it('Cannot withdraw TRAC if there is no TRAC deposited',async function() {
+			assert.equal(await stakingContract.getStake( accounts[2]), 0);
+			await truffleAssert.reverts( stakingContract.withdrawTokens( {from: accounts[2]} ) );
+		});
+
+		it('Withdrawing tokens updates the participant array correctly',async function() {
+			await token.transfer(accounts[4],1000, {from: accounts[0]});
+			await token.transfer(accounts[5],1000, {from: accounts[0]});
+			await token.transfer(accounts[6],1000, {from: accounts[0]});
+			assert.equal(await stakingContract.getStake( accounts[4]), 0);
+			assert.equal(await stakingContract.getStake( accounts[5]), 0);
+			assert.equal(await stakingContract.getStake( accounts[6]), 0);
+
+			const initialPaticipants = await stakingContract.getParticipants();
+			const account1Index = initialPaticipants.length;
+
+			await token.approve(stakingContract.address, 1000, {from: accounts[4]});
+			await stakingContract.depositTokens(1000, {from: accounts[4]});
+			await token.approve(stakingContract.address, 1000, {from: accounts[5]});
+			await stakingContract.depositTokens(1000, {from: accounts[5]});
+			await token.approve(stakingContract.address, 1000, {from: accounts[6]});
+			await stakingContract.depositTokens(1000, {from: accounts[6]});
+
+			const secondParticipants = await stakingContract.getParticipants();
+			const secondLength = secondParticipants.length;
+			assert.equal(secondLength, initialPaticipants.length + 3);
+			assert.equal(secondParticipants[secondLength - 3], accounts[4]);
+			assert.equal(secondParticipants[secondLength - 2], accounts[5]);
+			assert.equal(secondParticipants[secondLength - 1], accounts[6]);
+
+
+			let withdraw = await stakingContract.withdrawTokens({from: accounts[4]});
+			assert.equal(await stakingContract.getStake( accounts[4]), 0);
+
+			const finalParticipants = await stakingContract.getParticipants();
+			const finalLength = finalParticipants.length;
+			assert.equal(finalParticipants.length, initialPaticipants + 2);
+			// The last element of the array should be placed in the place of the deleted element
+			assert.equal(finalParticipants[finalLength - 2], accounts[6]);
+			assert.equal(finalParticipants[finalLength - 1], accounts[5]);
+
+			withdraw = await stakingContract.withdrawTokens({from: accounts[5]});
+			withdraw = await stakingContract.withdrawTokens({from: accounts[6]});
+		});
+
 
 		it('Cannot withdraw deposited TRAC when MIN_THRESHOLD reached',async function() { 
 			let balance = await token.balanceOf( stakingContract.address);
@@ -191,7 +236,8 @@ contract('StarfleetStake', async function(accounts) {
 		it('Contract manager cannot transfer funds before bridge launch window', async function(){
 
 			await timeMachine.advanceTime(BOARDING_PERIOD_LENGTH);
-			await truffleAssert.reverts( stakingContract.transferTokens(accounts[5] ,{from : accounts[0]}) );
+			const custodian = await MultiSig.new([accounts[0], accounts[1]], { from: accounts[0] });
+			await truffleAssert.reverts( stakingContract.transferTokens(custodian.address ,{from : accounts[0]}) );
 
 		});
 
@@ -199,7 +245,24 @@ contract('StarfleetStake', async function(accounts) {
 		it('Contract manager cannot transfer transfer funds during bridge launch window if the custodian is not a contract', async function(){
 			let totalStakedBalance = await token.balanceOf( stakingContract.address);
 			await timeMachine.advanceTime(LOCK_PERIOD_LENGTH);
-			await truffleAssert.reverts(stakingContract.transferTokens(accounts[5],{from : accounts[0]}));
+			await truffleAssert.reverts(stakingContract.transferTokens(accounts[5],{from : accounts[0]}),
+				 "Cannot transfer tokens to custodian that is not a contract!");
+		});
+
+
+		it('Contract manager cannot transfer transfer funds during bridge launch window if the custodian does not have getOwners function', async function(){
+			let totalStakedBalance = await token.balanceOf( stakingContract.address);
+			await truffleAssert.reverts(stakingContract.transferTokens(token.address, { from: accounts[0]}),
+				"Cannot transfer tokens to custodian without getOwners function!");
+		});
+
+
+		it('Contract manager cannot transfer transfer funds during bridge launch window if the custodian does not have owners', async function(){
+			let totalStakedBalance = await token.balanceOf( stakingContract.address);
+			const custodian = await MultiSig.new([], { from: accounts[0] });
+
+			await truffleAssert.reverts(stakingContract.transferTokens(custodian.address, { from: accounts[0]}),
+				"Cannot transfer tokens to custodian without owners defined!");
 		});
 
 
@@ -270,6 +333,12 @@ contract('StarfleetStake', async function(accounts) {
 		assert.equal( StarTRACbalance.eq(web3.utils.toBN('0')), true); 
 		let balance = await token.balanceOf( accounts[1]);
 		assert.equal(balance.eq(web3.utils.toBN('1000')), true);
+	} );
+	
+	it('Token holder cannot claim StarTRAC twice',async function() { 
+		let StarTRACbalance = await stakingContract.getStarTRACamount( accounts[1]);
+		assert.equal( StarTRACbalance.eq(web3.utils.toBN('0')), true); 
+		await truffleAssert.reverts(stakingContract.fallbackWithdrawTokens({ from: accounts[1] }));
 	} );
 
 }); 

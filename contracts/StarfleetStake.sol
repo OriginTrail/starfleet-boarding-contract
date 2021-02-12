@@ -101,6 +101,10 @@ contract StarfleetStake is Ownable {
         return participants.length;
     }
 
+    function getParticipants() public view returns(address[] memory){
+        return participants;
+    }
+
     function isMinimumReached() public view returns(bool){
         return min_threshold_reached;
     }
@@ -160,15 +164,21 @@ contract StarfleetStake is Ownable {
 
 
     // Functional requirement FR4
-    function transferTokens(address custodian) onlyOwner public {
+    function transferTokens(address payable custodian) onlyOwner public {
 
         require(custodian != address(0x0));
+        uint contractSize;
+        assembly { contractSize := extcodesize(custodian) }
+        require(contractSize > 0, "Cannot transfer tokens to custodian that is not a contract!");
+
         IBridgeCustodian custodianContract = IBridgeCustodian(custodian);
+        bool hasOwnersFunction = false;
         try custodianContract.getOwners() returns (address[] memory owners) {
+            hasOwnersFunction = true;
             require(owners.length > 0, "Cannot transfer tokens to custodian without owners defined!");
-        } catch {
-            require(false, "Cannot transfer tokens to custodian that is not a contract or a contract without getOwners function!");
-        }
+        } catch {}
+        require(hasOwnersFunction, "Cannot transfer tokens to custodian without getOwners function!");
+
         require(now >= tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH) && now < tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH));
 
         uint256 balanceTransferred= token.balanceOf(address(this));
