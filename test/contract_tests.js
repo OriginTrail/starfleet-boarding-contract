@@ -191,7 +191,7 @@ contract('StarfleetStake', async function(accounts) {
 		});
 
 
-		it('Contract manager cannot transfer transfer funds during bridge launch window if the custodian is not an address', async function(){
+		it('Contract manager cannot transfer transfer funds during bridge launch window if the custodian is not a contract', async function(){
 			let totalStakedBalance = await token.balanceOf( stakingContract.address);
 			await timeMachine.advanceTime(LOCK_PERIOD_LENGTH);
 			await truffleAssert.reverts(stakingContract.transferTokens(accounts[5],{from : accounts[0]}));
