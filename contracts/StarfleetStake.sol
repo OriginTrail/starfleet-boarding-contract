@@ -14,7 +14,7 @@ contract StarfleetStake is Ownable {
 
   // maximum number of tokens allowed to be onboarded
   uint256 public constant MAX_THRESHOLD = 5e25;
-  
+
   // Time periods
 
   // Official start time of the staking period
@@ -29,7 +29,7 @@ contract StarfleetStake is Ownable {
 
   // participant stakes
   mapping(address => uint256) internal stake;
- 
+
   // for feature O1
   mapping(address => uint256) internal StarTRAC_snapshot;
 
@@ -44,17 +44,17 @@ contract StarfleetStake is Ownable {
     if(startTime!=0){
       tZero = startTime;
     }else{
-      tZero = now;  
+      tZero = now;
     }
 
     if (tokenAddress!=address(0x0)){
         // for testing purposes
-        token = ERC20(tokenAddress);  
+        token = ERC20(tokenAddress);
       }else{
         // default use TRAC
-        token = ERC20(0xaA7a9CA87d3694B5755f213B5D04094b8d0F0A6F);    
+        token = ERC20(0xaA7a9CA87d3694B5755f213B5D04094b8d0F0A6F);
       }
-    
+
   }
 
 // Functional requirement FR1
@@ -62,15 +62,15 @@ contract StarfleetStake is Ownable {
 
   require(amount>0);
   require(now >= tZero);
-  require(now < tZero + BOARDING_PERIOD_LENGTH);
-  require(token.balanceOf(address(this)) + amount <= MAX_THRESHOLD, "Sender cannot deposit amounts that would cross the MAX_THRESHOLD");
+  require(now < tZero.add(BOARDING_PERIOD_LENGTH));
+  require(token.balanceOf(address(this)).add(amount) <= MAX_THRESHOLD, "Sender cannot deposit amounts that would cross the MAX_THRESHOLD");
   require(token.allowance(msg.sender, address(this)) >= amount, "Sender allowance must be equal to or higher than chosen amount");
   require(token.balanceOf(msg.sender) >= amount, "Sender balance must be equal to or higher than chosen amount!");
 
   token.transferFrom(msg.sender, address(this), amount);
 
   if (stake[msg.sender] == 0){
-    participants.push(msg.sender);  
+    participants.push(msg.sender);
   }
 
   stake[msg.sender] = stake[msg.sender].add(amount);
@@ -105,7 +105,7 @@ function withdrawTokens() public {
   uint256 amount = stake[msg.sender];
   stake[msg.sender] = 0;
   token.transfer(msg.sender, amount);
-  emit TokenWithdrawn(msg.sender, amount); 
+  emit TokenWithdrawn(msg.sender, amount);
 
 
 }
@@ -113,19 +113,19 @@ function withdrawTokens() public {
 // Functional requirement FR6
 function fallbackWithdrawTokens() public {
 
-  require(now > tZero + BOARDING_PERIOD_LENGTH + LOCK_PERIOD_LENGTH + BRIDGE_PERIOD_LENGTH);
+  require(now > tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH));
   require(StarTRAC_snapshot[msg.sender] > 0);
   uint256 amount = StarTRAC_snapshot[msg.sender];
   StarTRAC_snapshot[msg.sender] = 0;
   token.transfer(msg.sender, amount);
   emit TokenFallbackWithdrawn(msg.sender, amount);
-  
+
 
 }
 
 // Functional requirement FR5
 function accountStarTRAC(address[] memory contributors, uint256[] memory amounts) onlyOwner public {
-  require(now > tZero + BOARDING_PERIOD_LENGTH + LOCK_PERIOD_LENGTH + BRIDGE_PERIOD_LENGTH);
+  require(now > tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH));
   require(contributors.length == amounts.length);
   for (uint i = 0; i < contributors.length; i++) {
     StarTRAC_snapshot[contributors[i]] = amounts[i];
@@ -142,11 +142,11 @@ function getStarTRACamount(address contributor) public view returns(uint256){
 function transferTokens(address custodian) onlyOwner public {
 
   require(custodian != address(0x0));
-  require(now >= tZero + BOARDING_PERIOD_LENGTH + LOCK_PERIOD_LENGTH && now < tZero + BOARDING_PERIOD_LENGTH + LOCK_PERIOD_LENGTH + BRIDGE_PERIOD_LENGTH);
+  require(now >= tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH) && now < tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH));
 
   uint256 balanceTransferred= token.balanceOf(address(this));
   token.transfer(custodian, balanceTransferred);
-  
+
   emit TokenTransferred(custodian, balanceTransferred);
 }
 
