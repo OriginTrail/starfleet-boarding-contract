@@ -3,6 +3,7 @@ pragma solidity 0.6.10;
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/access/Ownable.sol";
+import "./IBridgeCustodian.sol";
 
 contract StarfleetStake is Ownable {
 
@@ -107,7 +108,6 @@ function isMinimumReached() public view returns(bool){
 // Functional requirement FR2
 function withdrawTokens() public {
 
-  require(now >= tZero);
   require(!min_threshold_reached);
   require(stake[msg.sender] > 0);
   uint256 amount = stake[msg.sender];
@@ -162,6 +162,17 @@ function getStarTRACamount(address contributor) public view returns(uint256){
 function transferTokens(address custodian) onlyOwner public {
 
   require(custodian != address(0x0));
+  uint contractSize;
+  assembly { contractSize := extcodesize(custodian) }
+  require(contractSize > 0, "Cannot transfer tokens to custodian that is not a contract!");
+
+  IBridgeCustodian custodianContract = IBridgeCustodian(custodian);
+  bool hasOwnersFunction = false;
+  try custodianContract.getOwners() returns (address[] memory owners) {
+    hasOwnersFunction = true;
+    require(owners.length > 0, "Cannot transfer tokens to custodian without owners defined!");
+  } catch {}
+  require(hasOwnersFunction, "Cannot transfer tokens to custodian without getOwners function!");
   require(now >= tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH) && now < tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH));
 
   uint256 balanceTransferred= token.balanceOf(address(this));

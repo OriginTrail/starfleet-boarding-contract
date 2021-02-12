@@ -10,6 +10,7 @@ const BN = require('bn.js');
 const truffleAssert = require('truffle-assertions');
 const TestTraceToken = artifacts.require("TestTraceToken");
 const StarfleetStake = artifacts.require("StarfleetStake");
+const MultiSig = artifacts.require("MultiSigWallet");
 const e18 = new web3.utils.toBN('1000000000000000000');
 const million = new web3.utils.toBN('1000000').mul(e18);
 const ETHER = e18;
@@ -190,13 +191,22 @@ contract('StarfleetStake', async function(accounts) {
 		});
 
 
-		it('Contract manager can transfer funds during bridge launch window', async function(){
+		it('Contract manager cannot transfer transfer funds during bridge launch window if the custodian is not a contract', async function(){
 			let totalStakedBalance = await token.balanceOf( stakingContract.address);
 			await timeMachine.advanceTime(LOCK_PERIOD_LENGTH);
-			await  stakingContract.transferTokens(accounts[5],{from : accounts[0]}) ;
+			await truffleAssert.reverts(stakingContract.transferTokens(accounts[5],{from : accounts[0]}));
+		});
+
+
+		it('Contract manager can transfer funds during bridge launch window', async function(){
+			let totalStakedBalance = await token.balanceOf( stakingContract.address);
+			
+			const custodian = await MultiSig.new([accounts[0], accounts[1]], { from: accounts[0] });
+			await stakingContract.transferTokens(custodian.address,{from : accounts[0]}) ;
+			
 			balance = await token.balanceOf( stakingContract.address);
 			assert.equal(balance.eq(web3.utils.toBN('0')), true);
-			balance = await token.balanceOf( accounts[5]);
+			balance = await token.balanceOf( custodian.address);
 			assert.equal(balance.eq(totalStakedBalance), true);
 		});
 	});
