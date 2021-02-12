@@ -56,6 +56,11 @@ contract('StarfleetStake', async function(accounts) {
 				assert.notEqual(owner, accounts[1]);
 			});
 
+			it("Contract manager cannot renounce ownership", async () => {
+				await truffleAssert.reverts(stakingContract.renounceOwnership(),
+					"Cannot renounce ownership of contract");
+			});
+
 			it("Contract manager can change ownership", async () => {
 				let changeOfOwnership = await stakingContract.transferOwnership(accounts[1]);
 				let newOwner = await stakingContract.owner.call();
