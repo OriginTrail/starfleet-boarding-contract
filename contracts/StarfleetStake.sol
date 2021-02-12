@@ -29,6 +29,7 @@ contract StarfleetStake is Ownable {
 
   // participant stakes
   mapping(address => uint256) internal stake;
+  mapping(address => uint256) internal participant_indexes;
  
   // for feature O1
   mapping(address => uint256) internal StarTRAC_snapshot;
@@ -76,6 +77,7 @@ contract StarfleetStake is Ownable {
   require(transactionResult, "Token transaction execution failed!");
 
   if (stake[msg.sender] == 0){
+    participant_indexes[msg.sender] = participants.length;
     participants.push(msg.sender);  
   }
 
@@ -110,6 +112,16 @@ function withdrawTokens() public {
   require(stake[msg.sender] > 0);
   uint256 amount = stake[msg.sender];
   stake[msg.sender] = 0;
+
+  uint256 participantIndex = participant_indexes[msg.sender];
+  require(participantIndex < participants.length, "Sender is not listed in participant list");
+  if (participantIndex != participants.length.sub(1)) {
+      address lastParticipant = participants[participants.length.sub(1)];
+      participants[participantIndex] = lastParticipant;
+      participant_indexes[lastParticipant] = participantIndex;
+  }
+  participants.pop();
+
   bool transactionResult = token.transfer(msg.sender, amount);
   require(transactionResult, "Token transaction execution failed!");
   emit TokenWithdrawn(msg.sender, amount); 
