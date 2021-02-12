@@ -67,7 +67,8 @@ contract StarfleetStake is Ownable {
   require(token.allowance(msg.sender, address(this)) >= amount, "Sender allowance must be equal to or higher than chosen amount");
   require(token.balanceOf(msg.sender) >= amount, "Sender balance must be equal to or higher than chosen amount!");
 
-  token.transferFrom(msg.sender, address(this), amount);
+  bool transactionResult = token.transferFrom(msg.sender, address(this), amount);
+  require(transactionResult, "Token transaction execution failed!");
 
   if (stake[msg.sender] == 0){
     participants.push(msg.sender);  
@@ -104,7 +105,8 @@ function withdrawTokens() public {
   require(stake[msg.sender] > 0);
   uint256 amount = stake[msg.sender];
   stake[msg.sender] = 0;
-  token.transfer(msg.sender, amount);
+  bool transactionResult = token.transfer(msg.sender, amount);
+  require(transactionResult, "Token transaction execution failed!");
   emit TokenWithdrawn(msg.sender, amount); 
 
 
@@ -117,7 +119,8 @@ function fallbackWithdrawTokens() public {
   require(StarTRAC_snapshot[msg.sender] > 0);
   uint256 amount = StarTRAC_snapshot[msg.sender];
   StarTRAC_snapshot[msg.sender] = 0;
-  token.transfer(msg.sender, amount);
+  bool transactionResult = token.transfer(msg.sender, amount);
+  require(transactionResult, "Token transaction execution failed!");
   emit TokenFallbackWithdrawn(msg.sender, amount);
   
 
@@ -145,7 +148,8 @@ function transferTokens(address custodian) onlyOwner public {
   require(now >= tZero + BOARDING_PERIOD_LENGTH + LOCK_PERIOD_LENGTH && now < tZero + BOARDING_PERIOD_LENGTH + LOCK_PERIOD_LENGTH + BRIDGE_PERIOD_LENGTH);
 
   uint256 balanceTransferred= token.balanceOf(address(this));
-  token.transfer(custodian, balanceTransferred);
+  bool transactionResult = token.transfer(custodian, balanceTransferred);
+  require(transactionResult, "Token transaction execution failed!");
   
   emit TokenTransferred(custodian, balanceTransferred);
 }
