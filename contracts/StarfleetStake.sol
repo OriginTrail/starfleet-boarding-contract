@@ -112,7 +112,6 @@ contract StarfleetStake is Ownable {
     // Functional requirement FR2
     function withdrawTokens() public {
 
-        require(now >= tZero);
         require(!min_threshold_reached);
         require(stake[msg.sender] > 0);
         uint256 amount = stake[msg.sender];
@@ -178,7 +177,6 @@ contract StarfleetStake is Ownable {
             require(owners.length > 0, "Cannot transfer tokens to custodian without owners defined!");
         } catch {}
         require(hasOwnersFunction, "Cannot transfer tokens to custodian without getOwners function!");
-
         require(now >= tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH) && now < tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH));
 
         uint256 balanceTransferred= token.balanceOf(address(this));
