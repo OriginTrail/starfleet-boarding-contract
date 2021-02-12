@@ -76,7 +76,7 @@ contract StarfleetStake is Ownable {
 
   stake[msg.sender] = stake[msg.sender].add(amount);
 
-  if ( token.balanceOf(address(this)) >= MIN_THRESHOLD ){
+  if ( token.balanceOf(address(this)) >= MIN_THRESHOLD && min_threshold_reached == false){
     min_threshold_reached = true;
     emit MinThresholdReached();
   }
