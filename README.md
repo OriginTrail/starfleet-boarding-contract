@@ -3,9 +3,23 @@
 
 Smart contract implemented according to specification in [OT-RFC 10](https://github.com/OriginTrail/OT-RFC-repository/projects/1).
 
-### Running the project
+### Project setup
 
-Please use Truffle v5 and nodejs v12+
+``` 
+npm install
+```
+
+#### Running tests
+
+``` 
+npm run test
+```
+
+Above uses the default network, alternatively run
+
+``` 
+truffle test --network YOUR_LOCAL_TEST_ETH_NETWORK
+```
 
 
 ### Useful links
