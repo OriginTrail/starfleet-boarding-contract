@@ -3,7 +3,7 @@ pragma solidity 0.6.10;
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/access/Ownable.sol";
-import "./IBridgeCustodian.sol";
+import "./mocks/IBridgeCustodian.sol";
 
 contract StarfleetStake is Ownable {
 
