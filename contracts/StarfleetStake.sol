@@ -67,9 +67,9 @@ contract StarfleetStake is Ownable {
     // Functional requirement FR1
     function depositTokens(uint256 amount) public {
 
-        require(amount>0);
-        require(now >= tZero);
-        require(now < tZero.add(BOARDING_PERIOD_LENGTH));
+        require(amount>0, "Amount cannot be zero");
+        require(now >= tZero, "Cannot deposit before staking starts");
+        require(now < tZero.add(BOARDING_PERIOD_LENGTH), "Cannot deposit after boarding period has expired");
         require(token.balanceOf(address(this)).add(amount) <= MAX_THRESHOLD, "Sender cannot deposit amounts that would cross the MAX_THRESHOLD");
         require(token.allowance(msg.sender, address(this)) >= amount, "Sender allowance must be equal to or higher than chosen amount");
         require(token.balanceOf(msg.sender) >= amount, "Sender balance must be equal to or higher than chosen amount!");
@@ -112,8 +112,8 @@ contract StarfleetStake is Ownable {
     // Functional requirement FR2
     function withdrawTokens() public {
 
-        require(!min_threshold_reached);
-        require(stake[msg.sender] > 0);
+        require(!min_threshold_reached, "Cannot withdraw if minimum threshold has been reached");
+        require(stake[msg.sender] > 0,"Cannot withdraw if there are no tokens staked with this address");
         uint256 amount = stake[msg.sender];
         stake[msg.sender] = 0;
 
@@ -136,8 +136,8 @@ contract StarfleetStake is Ownable {
     // Functional requirement FR6
     function fallbackWithdrawTokens() public {
 
-        require(now > tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH));
-        require(StarTRAC_snapshot[msg.sender] > 0);
+        require(now > tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH), "Cannot use fallbackWithdrawTokens before end of bridge period");
+        require(StarTRAC_snapshot[msg.sender] > 0, "Cannot withdraw as this address has no StarTRAC associated");
         uint256 amount = StarTRAC_snapshot[msg.sender];
         StarTRAC_snapshot[msg.sender] = 0;
         bool transactionResult = token.transfer(msg.sender, amount);
@@ -149,8 +149,8 @@ contract StarfleetStake is Ownable {
 
     // Functional requirement FR5
     function accountStarTRAC(address[] memory contributors, uint256[] memory amounts) onlyOwner public {
-        require(now > tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH));
-        require(contributors.length == amounts.length);
+        require(now > tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH), "Cannot account StarTRAC tokens before end of bridge period");
+        require(contributors.length == amounts.length, "Wrong input - contributors and amounts have different lenghts");
         for (uint i = 0; i < contributors.length; i++) {
             StarTRAC_snapshot[contributors[i]] = amounts[i];
         }
@@ -165,7 +165,7 @@ contract StarfleetStake is Ownable {
     // Functional requirement FR4
     function transferTokens(address payable custodian) onlyOwner public {
 
-        require(custodian != address(0x0));
+        require(custodian != address(0x0), "Custodian cannot be a zero address");
         uint contractSize;
         assembly { contractSize := extcodesize(custodian) }
         require(contractSize > 0, "Cannot transfer tokens to custodian that is not a contract!");
@@ -177,7 +177,7 @@ contract StarfleetStake is Ownable {
             require(owners.length > 0, "Cannot transfer tokens to custodian without owners defined!");
         } catch {}
         require(hasOwnersFunction, "Cannot transfer tokens to custodian without getOwners function!");
-        require(now >= tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH) && now < tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH));
+        require(now >= tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH) && now < tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH), "Cannot transfer tokens outside of the bridge period");
 
         uint256 balanceTransferred= token.balanceOf(address(this));
         bool transactionResult = token.transfer(custodian, balanceTransferred);
