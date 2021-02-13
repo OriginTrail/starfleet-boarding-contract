@@ -15,4 +15,3 @@ contract MultiSigWallet is IBridgeCustodian {
         return owners;
     }
 }
-

@@ -9,7 +9,8 @@
   "scripts": {
     "test": "truffle test",
     "coverage": "truffle run coverage",
-    "compile": "truffle compile"
+    "compile": "truffle compile",
+    "prettier:solidity": "./node_modules/.bin/prettier --write contracts/**/*.sol"
   },
   "author": "",
   "license": "ISC",
@@ -28,6 +29,10 @@
   "devDependencies": {
     "chai": "^4.2.0",
     "chai-bignumber": "^3.0.0",
+    "eslint": "^7.20.0",
+    "prettier": "^2.2.1",
+    "prettier-plugin-solidity": "^1.0.0-beta.5",
+    "solhint": "^3.3.2",
     "solidity-coverage": "^0.7.14"
   }
 }

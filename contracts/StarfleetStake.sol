@@ -19,7 +19,7 @@ contract StarfleetStake is Ownable {
     // Time periods
 
     // Official start time of the staking period
-    uint256 public tZero;
+    uint256 public t_zero;
     uint256 public constant BOARDING_PERIOD_LENGTH = 30 days;
     uint256 public constant LOCK_PERIOD_LENGTH = 180 days;
     uint256 public constant BRIDGE_PERIOD_LENGTH = 180 days;
@@ -33,25 +33,25 @@ contract StarfleetStake is Ownable {
     mapping(address => uint256) internal participant_indexes;
 
     // for feature O1
-    mapping(address => uint256) internal StarTRAC_snapshot;
+    mapping(address => uint256) internal starTRAC_snapshot;
 
-    event TokenStaked(address staker, uint256 amount);
-    event TokenWithdrawn(address staker, uint256 amount);
-    event TokenFallbackWithdrawn(address staker, uint256 amount);
-    event TokenTransferred(address custodian, uint256 amount);
+    event TokenStaked(address indexed staker, uint256 amount);
+    event TokenWithdrawn(address indexed staker, uint256 amount);
+    event TokenFallbackWithdrawn(address indexed staker, uint256 amount);
+    event TokenTransferred(address indexed custodian, uint256 amount);
     event MinThresholdReached();
 
-    constructor(uint256 startTime,address tokenAddress)  public {
+    constructor(uint256 start_time,address token_address)  public {
 
-        if(startTime > now){
-            tZero = startTime;
+        if(start_time > now){
+            t_zero = start_time;
         }else{
-            tZero = now;
+            t_zero = now;
         }
 
-        if (tokenAddress!=address(0x0)){
+        if (token_address!=address(0x0)){
             // for testing purposes
-            token = IERC20(tokenAddress);
+            token = IERC20(token_address);
         }else{
             // default use TRAC
             token = IERC20(0xaA7a9CA87d3694B5755f213B5D04094b8d0F0A6F);
@@ -68,14 +68,14 @@ contract StarfleetStake is Ownable {
     function depositTokens(uint256 amount) public {
 
         require(amount>0, "Amount cannot be zero");
-        require(now >= tZero, "Cannot deposit before staking starts");
-        require(now < tZero.add(BOARDING_PERIOD_LENGTH), "Cannot deposit after boarding period has expired");
+        require(now >= t_zero, "Cannot deposit before staking starts");
+        require(now < t_zero.add(BOARDING_PERIOD_LENGTH), "Cannot deposit after boarding period has expired");
         require(token.balanceOf(address(this)).add(amount) <= MAX_THRESHOLD, "Sender cannot deposit amounts that would cross the MAX_THRESHOLD");
         require(token.allowance(msg.sender, address(this)) >= amount, "Sender allowance must be equal to or higher than chosen amount");
         require(token.balanceOf(msg.sender) >= amount, "Sender balance must be equal to or higher than chosen amount!");
 
-        bool transactionResult = token.transferFrom(msg.sender, address(this), amount);
-        require(transactionResult, "Token transaction execution failed!");
+        bool transaction_result = token.transferFrom(msg.sender, address(this), amount);
+        require(transaction_result, "Token transaction execution failed!");
 
         if (stake[msg.sender] == 0){
             participant_indexes[msg.sender] = participants.length;
@@ -117,17 +117,17 @@ contract StarfleetStake is Ownable {
         uint256 amount = stake[msg.sender];
         stake[msg.sender] = 0;
 
-        uint256 participantIndex = participant_indexes[msg.sender];
-        require(participantIndex < participants.length, "Sender is not listed in participant list");
-        if (participantIndex != participants.length.sub(1)) {
-            address lastParticipant = participants[participants.length.sub(1)];
-            participants[participantIndex] = lastParticipant;
-            participant_indexes[lastParticipant] = participantIndex;
+        uint256 participant_index = participant_indexes[msg.sender];
+        require(participant_index < participants.length, "Sender is not listed in participant list");
+        if (participant_index != participants.length.sub(1)) {
+            address last_participant = participants[participants.length.sub(1)];
+            participants[participant_index] = last_participant;
+            participant_indexes[last_participant] = participant_index;
         }
         participants.pop();
 
-        bool transactionResult = token.transfer(msg.sender, amount);
-        require(transactionResult, "Token transaction execution failed!");
+        bool transaction_result = token.transfer(msg.sender, amount);
+        require(transaction_result, "Token transaction execution failed!");
         emit TokenWithdrawn(msg.sender, amount);
 
 
@@ -136,12 +136,12 @@ contract StarfleetStake is Ownable {
     // Functional requirement FR6
     function fallbackWithdrawTokens() public {
 
-        require(now > tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH), "Cannot use fallbackWithdrawTokens before end of bridge period");
-        require(StarTRAC_snapshot[msg.sender] > 0, "Cannot withdraw as this address has no StarTRAC associated");
-        uint256 amount = StarTRAC_snapshot[msg.sender];
-        StarTRAC_snapshot[msg.sender] = 0;
-        bool transactionResult = token.transfer(msg.sender, amount);
-        require(transactionResult, "Token transaction execution failed!");
+        require(now > t_zero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH), "Cannot use fallbackWithdrawTokens before end of bridge period");
+        require(starTRAC_snapshot[msg.sender] > 0, "Cannot withdraw as this address has no starTRAC associated");
+        uint256 amount = starTRAC_snapshot[msg.sender];
+        starTRAC_snapshot[msg.sender] = 0;
+        bool transaction_result = token.transfer(msg.sender, amount);
+        require(transaction_result, "Token transaction execution failed!");
         emit TokenFallbackWithdrawn(msg.sender, amount);
 
 
@@ -149,16 +149,16 @@ contract StarfleetStake is Ownable {
 
     // Functional requirement FR5
     function accountStarTRAC(address[] memory contributors, uint256[] memory amounts) onlyOwner public {
-        require(now > tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH), "Cannot account StarTRAC tokens before end of bridge period");
+        require(now > t_zero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH), "Cannot account starTRAC tokens before end of bridge period");
         require(contributors.length == amounts.length, "Wrong input - contributors and amounts have different lenghts");
         for (uint i = 0; i < contributors.length; i++) {
-            StarTRAC_snapshot[contributors[i]] = amounts[i];
+            starTRAC_snapshot[contributors[i]] = amounts[i];
         }
 
     }
 
     function getStarTRACamount(address contributor) public view returns(uint256){
-        return StarTRAC_snapshot[contributor];
+        return starTRAC_snapshot[contributor];
     }
 
 
@@ -166,24 +166,24 @@ contract StarfleetStake is Ownable {
     function transferTokens(address payable custodian) onlyOwner public {
 
         require(custodian != address(0x0), "Custodian cannot be a zero address");
-        uint contractSize;
-        assembly { contractSize := extcodesize(custodian) }
-        require(contractSize > 0, "Cannot transfer tokens to custodian that is not a contract!");
+        uint contract_size;
+        assembly { contract_size := extcodesize(custodian) }
+        require(contract_size > 0, "Cannot transfer tokens to custodian that is not a contract!");
 
-        IBridgeCustodian custodianContract = IBridgeCustodian(custodian);
-        bool hasOwnersFunction = false;
-        try custodianContract.getOwners() returns (address[] memory owners) {
-            hasOwnersFunction = true;
+        IBridgeCustodian custodian_contract = IBridgeCustodian(custodian);
+        bool has_owners_function = false;
+        try custodian_contract.getOwners() returns (address[] memory owners) {
+            has_owners_function = true;
             require(owners.length > 0, "Cannot transfer tokens to custodian without owners defined!");
         } catch {}
-        require(hasOwnersFunction, "Cannot transfer tokens to custodian without getOwners function!");
-        require(now >= tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH) && now < tZero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH), "Cannot transfer tokens outside of the bridge period");
+        require(has_owners_function, "Cannot transfer tokens to custodian without getOwners function!");
+        require(now >= t_zero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH) && now < t_zero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH), "Cannot transfer tokens outside of the bridge period");
 
-        uint256 balanceTransferred= token.balanceOf(address(this));
-        bool transactionResult = token.transfer(custodian, balanceTransferred);
-        require(transactionResult, "Token transaction execution failed!");
+        uint256 balance_transferred= token.balanceOf(address(this));
+        bool transaction_result = token.transfer(custodian, balance_transferred);
+        require(transaction_result, "Token transaction execution failed!");
 
-        emit TokenTransferred(custodian, balanceTransferred);
+        emit TokenTransferred(custodian, balance_transferred);
     }
 
     function withdrawMisplacedEther() onlyOwner public {
@@ -193,14 +193,14 @@ contract StarfleetStake is Ownable {
         }
     }
 
-    function withdrawMisplacedTokens(address tokenContractAddress) onlyOwner public {
-        require(tokenContractAddress != address(token), "Cannot use this function with the TRAC contract");
-        IERC20 tokenContract = IERC20(tokenContractAddress);
+    function withdrawMisplacedTokens(address token_aontract_address) onlyOwner public {
+        require(token_aontract_address != address(token), "Cannot use this function with the TRAC contract");
+        IERC20 token_contract = IERC20(token_aontract_address);
 
-        uint256 balance = tokenContract.balanceOf(address(this));
+        uint256 balance = token_contract.balanceOf(address(this));
         if (balance > 0) {
-            bool transactionResult = tokenContract.transfer(msg.sender, balance);
-            require(transactionResult, "Token transaction execution failed");
+            bool transaction_result = token_contract.transfer(msg.sender, balance);
+            require(transaction_result, "Token transaction execution failed");
         }
     }
 
