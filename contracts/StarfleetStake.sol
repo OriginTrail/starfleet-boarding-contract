@@ -10,6 +10,8 @@ contract StarfleetStake is Ownable {
     using SafeMath for uint256;
     IERC20 token;
 
+    address public constant TRAC_TOKEN_ADDRESS = 0xaA7a9CA87d3694B5755f213B5D04094b8d0F0A6F;
+
     // minimum number of tokens for successful onboarding
     uint256 public constant MIN_THRESHOLD = 2e25;
 
@@ -60,7 +62,7 @@ contract StarfleetStake is Ownable {
             token = IERC20(token_address);
         }else{
             // default use TRAC
-            token = IERC20(0xaA7a9CA87d3694B5755f213B5D04094b8d0F0A6F);
+            token = IERC20(TRAC_TOKEN_ADDRESS);
         }
 
     }
