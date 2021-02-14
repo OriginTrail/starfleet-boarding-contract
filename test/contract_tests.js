@@ -10,6 +10,7 @@ const BN = require('bn.js');
 const truffleAssert = require('truffle-assertions');
 const TestTraceToken = artifacts.require("TestTraceToken");
 const StarfleetStake = artifacts.require("StarfleetStake");
+const Suicidal = artifacts.require("Suicidal");
 const MultiSig = artifacts.require("MultiSigWallet");
 const e18 = new web3.utils.toBN('1000000000000000000');
 const million = new web3.utils.toBN('1000000').mul(e18);
@@ -88,6 +89,15 @@ contract('StarfleetStake', async function(accounts) {
 				await truffleAssert.reverts(stakingContract.sendTransaction({amount: ETHER}));
 			});
 
+			// it('Cannot mistake TRAC address', async function() {
+				
+			// 	let new_staking_contract = await StarfleetStake.new(0,"0x0000000000000000000000000000000000000000");
+			// 	let trac_address = await new_staking_contract.token.call();
+			// 	console.log(trac_address);
+			// 	assert(trac_address === "0xaA7a9CA87d3694B5755f213B5D04094b8d0F0A6F");
+
+			// });
+
 		});
 
 
@@ -125,6 +135,17 @@ contract('StarfleetStake', async function(accounts) {
 
 			} );
 
+
+			it('Cannot deposit tokens before boarding period has started', async function() {
+				let blockNumber = await web3.eth.getBlockNumber();
+				let block = await web3.eth.getBlock(blockNumber);
+				let start_time = block['timestamp'] + 1000000;
+				let new_staking_contract = await StarfleetStake.new(start_time,token.address);
+
+				await truffleAssert.reverts(
+					new_staking_contract.depositTokens(2000, {from: accounts[1]}));
+
+			});
 
 			it('Cannot deposit tokens after boarding period has expired', async function() {
 
@@ -246,7 +267,7 @@ contract('StarfleetStake', async function(accounts) {
 			let totalStakedBalance = await token.balanceOf( stakingContract.address);
 			await timeMachine.advanceTime(LOCK_PERIOD_LENGTH);
 			await truffleAssert.reverts(stakingContract.transferTokens(accounts[5],{from : accounts[0]}),
-				 "Cannot transfer tokens to custodian that is not a contract!");
+				"Cannot transfer tokens to custodian that is not a contract!");
 		});
 
 
@@ -278,7 +299,7 @@ contract('StarfleetStake', async function(accounts) {
 			assert.equal(balance.eq(totalStakedBalance), true);
 		});
 	});
-	
+
 }); 
 
 contract('StarfleetStake', async function(accounts) {
@@ -327,6 +348,14 @@ contract('StarfleetStake', async function(accounts) {
 	} );
 
 
+	it('Reverts when arrays not the same length',async function() { 
+		let contributors = [ accounts[6], accounts[7] ];
+		let amounts = [ 123 ];
+		await truffleAssert.reverts( stakingContract.accountStarTRAC(contributors, amounts, {from: accounts[0]}) );
+		
+	} );
+
+
 	it('Token holder can claim StarTRAC when StarTRAC snapshot is available',async function() { 
 		await stakingContract.fallbackWithdrawTokens({ from: accounts[1] });
 		let StarTRACbalance = await stakingContract.getStarTRACamount( accounts[1]);
@@ -341,4 +370,36 @@ contract('StarfleetStake', async function(accounts) {
 		await truffleAssert.reverts(stakingContract.fallbackWithdrawTokens({ from: accounts[1] }));
 	} );
 
-}); 
+
+	it('Cannot withdraw TRAC with withdrawMisplacedTokens',async function() { 
+		
+		await truffleAssert.reverts(stakingContract.withdrawMisplacedTokens(token.address));
+	} );
+
+
+	it('Can withdraw non-TRAC tokens with withdrawMisplacedTokens',async function() { 
+		
+		let another_token = await TestTraceToken.new();
+		let balance = await another_token.balanceOf(accounts[0]);
+		let totalSupply = web3.utils.toBN('500000000000000000000000000');
+		assert.equal(balance.eq(totalSupply), true );
+		await another_token.transfer(stakingContract.address, 123);
+		let balance_of_contract = await another_token.balanceOf( stakingContract.address);
+		await stakingContract.withdrawMisplacedTokens(another_token.address);
+		balance_of_contract = await another_token.balanceOf( stakingContract.address);
+		assert.equal(balance_of_contract.eq(web3.utils.toBN(0)), true);
+	} );
+
+
+	it('In case of accidental Ether through selfDestruct, the withdrawMisplacedEther should be able to send to owner',async function() { 
+
+		const suicidal_contract = await Suicidal.new([], { from: accounts[0] });
+		await suicidal_contract.sendTransaction({ value: ETHER, from: accounts[0]});
+		let balance = await web3.eth.getBalance(suicidal_contract.address);
+		await suicidal_contract.dieAndSendETH(stakingContract.address);
+		let balance1 = await web3.eth.getBalance(stakingContract.address);
+
+		assert.equal(balance == 0,true);
+	});
+
+});

@@ -193,9 +193,9 @@ contract StarfleetStake is Ownable {
         }
     }
 
-    function withdrawMisplacedTokens(address token_aontract_address) onlyOwner public {
-        require(token_aontract_address != address(token), "Cannot use this function with the TRAC contract");
-        IERC20 token_contract = IERC20(token_aontract_address);
+    function withdrawMisplacedTokens(address token_contract_address) onlyOwner public {
+        require(token_contract_address != address(token), "Cannot use this function with the TRAC contract");
+        IERC20 token_contract = IERC20(token_contract_address);
 
         uint256 balance = token_contract.balanceOf(address(this));
         if (balance > 0) {
