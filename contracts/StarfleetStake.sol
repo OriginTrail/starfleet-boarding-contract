@@ -23,6 +23,9 @@ contract StarfleetStake is Ownable {
     uint256 public constant BOARDING_PERIOD_LENGTH = 30 days;
     uint256 public constant LOCK_PERIOD_LENGTH = 180 days;
     uint256 public constant BRIDGE_PERIOD_LENGTH = 180 days;
+    uint256 public boarding_period_end;
+    uint256 public lock_period_end;
+    uint256 public bridge_period_end;
     bool public min_threshold_reached = false;
 
     // list of participants
@@ -49,6 +52,9 @@ contract StarfleetStake is Ownable {
             t_zero = now;
         }
 
+        boarding_period_end = t_zero.add(BOARDING_PERIOD_LENGTH);
+        lock_period_end = t_zero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH);
+        bridge_period_end = t_zero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH);
         if (token_address!=address(0x0)){
             // for testing purposes
             token = IERC20(token_address);
@@ -136,7 +142,7 @@ contract StarfleetStake is Ownable {
     // Functional requirement FR6
     function fallbackWithdrawTokens() public {
 
-        require(now > t_zero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH), "Cannot use fallbackWithdrawTokens before end of bridge period");
+        require(now > bridge_period_end, "Cannot use fallbackWithdrawTokens before end of bridge period");
         require(starTRAC_snapshot[msg.sender] > 0, "Cannot withdraw as this address has no starTRAC associated");
         uint256 amount = starTRAC_snapshot[msg.sender];
         starTRAC_snapshot[msg.sender] = 0;
@@ -149,7 +155,7 @@ contract StarfleetStake is Ownable {
 
     // Functional requirement FR5
     function accountStarTRAC(address[] memory contributors, uint256[] memory amounts) onlyOwner public {
-        require(now > t_zero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH), "Cannot account starTRAC tokens before end of bridge period");
+        require(now > bridge_period_end, "Cannot account starTRAC tokens before end of bridge period");
         require(contributors.length == amounts.length, "Wrong input - contributors and amounts have different lenghts");
         for (uint i = 0; i < contributors.length; i++) {
             starTRAC_snapshot[contributors[i]] = amounts[i];
@@ -177,7 +183,7 @@ contract StarfleetStake is Ownable {
             require(owners.length > 0, "Cannot transfer tokens to custodian without owners defined!");
         } catch {}
         require(has_owners_function, "Cannot transfer tokens to custodian without getOwners function!");
-        require(now >= t_zero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH) && now < t_zero.add(BOARDING_PERIOD_LENGTH).add(LOCK_PERIOD_LENGTH).add(BRIDGE_PERIOD_LENGTH), "Cannot transfer tokens outside of the bridge period");
+        require(now >= lock_period_end && now < bridge_period_end, "Cannot transfer tokens outside of the bridge period");
 
         uint256 balance_transferred= token.balanceOf(address(this));
         bool transaction_result = token.transfer(custodian, balance_transferred);
