@@ -45,6 +45,8 @@ contract StarfleetStake is Ownable {
     event TokenFallbackWithdrawn(address indexed staker, uint256 amount);
     event TokenTransferred(address indexed custodian, uint256 amount);
     event MinThresholdReached();
+    event MisplacedEtherWithdrawn(address indexed custodian);
+    event MisplacedTokensWithdrawn(address indexed custodian);
 
     constructor(uint256 start_time,address token_address)  public {
 
@@ -158,7 +160,7 @@ contract StarfleetStake is Ownable {
     // Functional requirement FR5
     function accountStarTRAC(address[] memory contributors, uint256[] memory amounts) onlyOwner public {
         require(now > bridge_period_end, "Cannot account starTRAC tokens before end of bridge period");
-        require(contributors.length == amounts.length, "Wrong input - contributors and amounts have different lenghts");
+        require(contributors.length == amounts.length, "Wrong input - contributors and amounts have different length");
         for (uint i = 0; i < contributors.length; i++) {
             starTRAC_snapshot[contributors[i]] = amounts[i];
         }
@@ -199,6 +201,7 @@ contract StarfleetStake is Ownable {
         if (balance > 0) {
             msg.sender.transfer(balance);
         }
+        emit MisplacedEtherWithdrawn(msg.sender);
     }
 
     function withdrawMisplacedTokens(address token_contract_address) onlyOwner public {
@@ -210,6 +213,7 @@ contract StarfleetStake is Ownable {
             bool transaction_result = token_contract.transfer(msg.sender, balance);
             require(transaction_result, "Token transaction execution failed");
         }
+        emit MisplacedTokensWithdrawn(msg.sender);
     }
 
 }
