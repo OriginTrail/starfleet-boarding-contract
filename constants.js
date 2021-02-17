@@ -66,7 +66,7 @@ module.exports = {
     },
     testnet: {
         rpc_endpoint : `${process.env.TESTNET_RPC_ENDPOINT}`,
-        start_time: 1613579313,
+        start_time: 1613579772,
         account: testnet_wallet,
         staking_address: testnet_address,
         owner_address: `${process.env.TESTNET_OWNER_ADDRESS}`,

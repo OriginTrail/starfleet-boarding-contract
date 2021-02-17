@@ -27,7 +27,7 @@ module.exports = function (deployer, network, accounts) {
     if (network === 'testnet') {
         // ATRAC deployment
         deployer.deploy(StarfleetStake, startTime, tokenAddress).then(async function (stakingContract) {
-            await stakingContract.transferOwnership(owner_address);
+            await stakingContract.transferOwnership(newOwner);
             const data = { address: stakingContract.address };
             fs.writeFileSync(address_filepath, JSON.stringify(data, null, 4));
         });
@@ -36,7 +36,7 @@ module.exports = function (deployer, network, accounts) {
     if (network === 'mainnet') {
         // TRAC deployment
         deployer.deploy(StarfleetStake, startTime, tokenAddress).then(async function (stakingContract) {
-            await stakingContract.transferOwnership(owner_address);
+            await stakingContract.transferOwnership(newOwner);
             const data = { address: stakingContract.address };
             fs.writeFileSync(address_filepath, JSON.stringify(data, null, 4));
         });
