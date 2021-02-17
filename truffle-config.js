@@ -21,10 +21,11 @@
 require('dotenv').config();
  const HDWalletProvider = require('@truffle/hdwallet-provider');
 
-
- const fs = require('fs');
- const privKey = fs.readFileSync(".secret").toString().trim();
- const rpcEndpoint = fs.readFileSync(".rpc").toString().trim();
+const constants = require('./constants.js');
+const mainnetRpcEndpoint = constants.mainnet.rpc_endpoint;
+const mainnetPrivateKey = constants.mainnet.account ? constants.mainnet.account.privateKey : '';
+const testnetRpcEndpoint = constants.testnet.rpc_endpoint;
+const testnetPrivateKey = constants.testnet.account ? constants.testnet.account.privateKey : '';
 
  module.exports = {
   /**
@@ -68,7 +69,7 @@ require('dotenv').config();
     // Useful for deploying to a public network.
     // NB: It's important to wrap the provider as a function.
     testnet: {
-        provider: () => new HDWalletProvider(process.env.TESTNET_PRIVATE_KEY, process.env.TESTNET_RPC_ENDPOINT),
+        provider: () => new HDWalletProvider(testnetPrivateKey, testnetRpcEndpoint),
         network_id: 4,       // Rinkeby's id
         gas: 5500000,        // Rinkeby has a lower block limit than mainnet
         confirmations: 2,    // # of confs to wait between deployments. (default: 0)
@@ -76,7 +77,7 @@ require('dotenv').config();
         skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
     },
     mainnet: {
-        provider: () => new HDWalletProvider(process.env.MAINNET_PRIVATE_KEY, process.env.MAINNET_RPC_ENDPOINT),
+        provider: () => new HDWalletProvider(mainnetPrivateKey, mainnetRpcEndpoint),
         network_id: 1,       // Ethereum's id
         gas: 5500000,
         gasPrice: 200000000000,

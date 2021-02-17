@@ -7,7 +7,7 @@ const argv = require('minimist')(process.argv.slice(2));
 
 // Load network to be used
 
-let network = 'ganache';
+let network;
 if (argv.hasOwnProperty('network')) {
     network = argv.network;
 } else if (Object.keys(argv).length > 1) {
@@ -20,37 +20,24 @@ if (!['testnet', 'mainnet', 'development', 'ganache'].includes(network)) {
     throw Error(`Network "${network}" is not supported!`);
 }
 
+const constants = require('../constants.js')[network];
+
 // Load web3
-let web3;
-if (network === 'mainnet') {
-    web3 = new Web3(new Web3.providers.HttpProvider(`${process.env.MAINNET_RPC_ENDPOINT}`));
-} else if (network === 'testnet') {
-    web3 = new Web3(new Web3.providers.HttpProvider(`${process.env.TESTNET_RPC_ENDPOINT}`));
-} else if (network === 'ganache') {
-    web3 = new Web3('http://127.0.0.1:7545');
-} else if (network === 'development') {
-    web3 = new Web3('http://127.0.0.1:8545');
-}
+const web3 = new Web3(new Web3.providers.HttpProvider(constants.rpc_endpoint));
 
 // Load wallet
-let wallet;
-const walletFilepath = `../metadata/${network}_wallet.json`;
-if (!fs.existsSync(walletFilepath)) {
-    throw Error(`File ${walletFilepath} does not exist!`);
-} else {
-    wallet = JSON.parse(fs.readFileSync(walletFilepath, { encoding: 'utf-8' }));
+const wallet = constants.account;
+if (!wallet) {
+    throw Error(`Wallet does not exist for network "${network}"!`);
 }
 
 // Load contract data
 //      Load contract abi
 const stakeContractAbi = require('../build/contracts/StarfleetStake').abi;
 //      Load contract address
-let stakeContractAddress;
-const addressFilepath = `../metadata/${network}_address.json`;
-if (!fs.existsSync(addressFilepath)) {
-    throw Error(`File ${addressFilepath} does not exist!`);
-} else {
-    stakeContractAddress = JSON.parse(fs.readFileSync(addressFilepath, { encoding: 'utf-8' })).address;
+const stakeContractAddress = constants.staking_address;
+if (!stakeContractAddress) {
+    throw Error(`Staking contract does not exist for network "${network}"!`);
 }
 //      Initialize smart contact
 const stakeContract = new web3.eth.Contract(stakeContractAbi, stakeContractAddress);
@@ -66,13 +53,7 @@ function reportError(message, expected, actual) {
 }
 
 async function main() {
-    let startTime;
-    if (network === 'testnet' || network === 'mainnet') {
-        startTime = new Date();
-    } else {
-        startTime = await stakeContract.methods.t_zero().call();
-        startTime = new Date(parseInt(startTime));
-    }
+    const startTime = constants.start_time;
 
     const day = 24 * 3600;
     let checksFailed = 0;
@@ -80,12 +61,10 @@ async function main() {
     let tZero = await stakeContract.methods.t_zero().call();
     tZero = parseInt(tZero);
     console.log(`tZero: ${tZero}`);
-    if (tZero !== startTime.getTime()) {
-        reportError('tZero does not match', startTime.getTime(), tZero);
+    if (tZero !== startTime) {
+        reportError('tZero does not match', startTime, tZero);
         checksFailed += 1;
     }
-
-
 
     let boardingPeriodLength = await stakeContract.methods.BOARDING_PERIOD_LENGTH().call();
     boardingPeriodLength = parseInt(boardingPeriodLength);
@@ -218,14 +197,7 @@ async function main() {
     }
 
     // Dodati proveru za owner-a
-    let expectedOwner;
-    if (network === 'testnet') {
-        expectedOwner = '0x5d216Ca7aD7EDCa0742d27F2372E55a2C038bBAd';
-    } else if (network === 'mainnet') {
-        expectedOwner = '0x5d216Ca7aD7EDCa0742d27F2372E55a2C038bBAd';
-    } else {
-        expectedOwner = '0x238F1746F5b5E31fF71306084324E26d922447d4';
-    }
+    const expectedOwner = constants.owner_address;
     const actualOwner = await stakeContract.methods.owner().call();
     console.log(`actualOwner ${actualOwner}`);
     if (expectedOwner.toLowerCase() !== actualOwner.toLowerCase()) {
