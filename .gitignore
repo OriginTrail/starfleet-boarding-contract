@@ -1,0 +1,13 @@
+/.idea/*
+/node_modules/*
+/build/*
+
+
+package-lock.json
+
+coverage/*
+metadata/*
+coverage.json
+.rpc
+.secret
+.env
