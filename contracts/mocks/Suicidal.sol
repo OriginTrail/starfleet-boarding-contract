@@ -2,10 +2,10 @@ pragma solidity 0.6.10;
 contract Suicidal {
 
 	event EthReceived(uint256 value); 
-	fallback () external payable {
+	receive () external payable {
 		emit EthReceived(msg.value);
 	}  
-	function dieAndSendETH(address payable receiver) public { 
+	function dieAndSendETH(address payable receiver) public payable { 
 		selfdestruct(receiver); 
 	}
 }

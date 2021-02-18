@@ -44,6 +44,8 @@ contract StarfleetStake is Ownable {
     event TokenWithdrawn(address indexed staker, uint256 amount);
     event TokenFallbackWithdrawn(address indexed staker, uint256 amount);
     event TokenTransferred(address indexed custodian, uint256 amount);
+    event StarTRACAccounted(address indexed contributor, uint256 amount);
+    event TokenAddressSet(address token_address);
     event MinThresholdReached();
     event MisplacedEtherWithdrawn(address indexed custodian);
     event MisplacedTokensWithdrawn(address indexed custodian);
@@ -62,9 +64,11 @@ contract StarfleetStake is Ownable {
         if (token_address!=address(0x0)){
             // for testing purposes
             token = IERC20(token_address);
+            emit TokenAddressSet(token_address);
         }else{
             // default use TRAC
             token = IERC20(TRAC_TOKEN_ADDRESS);
+            emit TokenAddressSet(TRAC_TOKEN_ADDRESS);
         }
 
     }
@@ -145,7 +149,8 @@ contract StarfleetStake is Ownable {
 
     // Functional requirement FR6
     function fallbackWithdrawTokens() public {
-
+        
+        require(min_threshold_reached, "Minimum threshold not reached");
         require(now > bridge_period_end, "Cannot use fallbackWithdrawTokens before end of bridge period");
         require(starTRAC_snapshot[msg.sender] > 0, "Cannot withdraw as this address has no starTRAC associated");
         uint256 amount = starTRAC_snapshot[msg.sender];
@@ -157,12 +162,26 @@ contract StarfleetStake is Ownable {
 
     }
 
-    // Functional requirement FR5
-    function accountStarTRAC(address[] memory contributors, uint256[] memory amounts) onlyOwner public {
+    // Functional requirement FR5. Assumes distinct contributors
+    function accountStarTRAC(address[] memory contributors, uint256[] memory amounts, bool allowOverwriting) onlyOwner public {
+        
+        require(min_threshold_reached, "Minimum threshold not reached");
         require(now > bridge_period_end, "Cannot account starTRAC tokens before end of bridge period");
         require(contributors.length == amounts.length, "Wrong input - contributors and amounts have different length");
-        for (uint i = 0; i < contributors.length; i++) {
-            starTRAC_snapshot[contributors[i]] = amounts[i];
+
+        // make sure not to overwrite by accident
+        if (!allowOverwriting){
+            for (uint i = 0; i < contributors.length; i++) {
+                if(starTRAC_snapshot[contributors[i]]==0){
+                    starTRAC_snapshot[contributors[i]] = amounts[i];
+                    emit StarTRACAccounted(contributors[i], amounts[i]);
+                }
+            }
+        } else {
+           for (uint j = 0; j < contributors.length; j++) {
+                starTRAC_snapshot[contributors[j]] = amounts[j];
+                emit StarTRACAccounted(contributors[j], amounts[j]);  
+            }
         }
 
     }
@@ -174,7 +193,7 @@ contract StarfleetStake is Ownable {
 
     // Functional requirement FR4
     function transferTokens(address payable custodian) onlyOwner public {
-
+        require(min_threshold_reached, "Minimum threshold not reached");
         require(custodian != address(0x0), "Custodian cannot be a zero address");
         uint contract_size;
         assembly { contract_size := extcodesize(custodian) }
@@ -199,7 +218,8 @@ contract StarfleetStake is Ownable {
     function withdrawMisplacedEther() onlyOwner public {
         uint256 balance = address(this).balance;
         if (balance > 0) {
-            msg.sender.transfer(balance);
+            (bool success, ) = msg.sender.call.value(balance)("");
+            require(success, "Transfer failed.");
         }
         emit MisplacedEtherWithdrawn(msg.sender);
     }
