@@ -3,6 +3,17 @@
 
 Smart contract implemented according to specification in [OT-RFC 10](https://github.com/OriginTrail/OT-RFC-repository/projects/1).
 
+### Contract data
+
+Trac token address: ___0xaa7a9ca87d3694b5755f213b5d04094b8d0f0a6f___
+
+[TRAC Token Contract Abi](https://raw.githubusercontent.com/OriginTrail/starfleet-boarding-contract/main/abi/TracToken.json)
+
+Staking contract address: ___0x14b9cc4a9a2382d5c5c2b38e6763e51d8fda3777___
+
+[Staking Contract Abi](https://raw.githubusercontent.com/OriginTrail/starfleet-boarding-contract/main/abi/StarfleetStake.json)
+
+
 ### Project setup
 
 ``` 
