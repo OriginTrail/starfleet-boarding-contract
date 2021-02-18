@@ -4,7 +4,7 @@ chai.use(require('chai-bignumber')());
 const ganache = require('ganache-cli');
 const timeMachine = require('ganache-time-traveler');
 const Web3 = require('web3');
-const web3 = new Web3(ganache.provider());
+const web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:8545'));
 const BigNumber = web3.BigNumber;
 const BN = require('bn.js');
 const truffleAssert = require('truffle-assertions');
@@ -486,17 +486,35 @@ contract('StarfleetStake', async function(accounts) {
 
 		
 		truffleAssert.eventEmitted(result, 'EthReceived');
-		let balance = await web3.eth.getBalance(suicidal_contract.address);
-		assert.equal(balance!=0, false);
+		let initialContractBalance = await web3.eth.getBalance(suicidal_contract.address);
+		initialContractBalance = new BN(initialContractBalance);
 
-		await suicidal_contract.dieAndSendETH(suicidal_contract.address, { value: ETHER, from: accounts[0]});
+		await suicidal_contract.dieAndSendETH(stakingContract.address);
 
-		// await suicidal_contract.dieAndSendETH(stakingContract.address);
-		let balance1 = await web3.eth.getBalance(stakingContract.address);
+		let stakingContractBalance = await web3.eth.getBalance(stakingContract.address);
+		stakingContractBalance = new BN(stakingContractBalance);
+		assert(
+			initialContractBalance.eq(stakingContractBalance), 
+			`Incorrect balance of staking contract after selfDestruct.`
+			+ `\n\tExpected: ${initialContractBalance.toString(10)}`
+			+ `\n\tActual:  ${stakingContractBalance.toString(10)}`,
+		);
+
+		let initialBalance = await web3.eth.getBalance(accounts[0]);
+		initialBalance = new BN(initialBalance);
+
 		let tx = await stakingContract.withdrawMisplacedEther();
-
 		truffleAssert.eventEmitted(tx, 'MisplacedEtherWithdrawn');
-		
-	});
 
+		let finalBalance = await web3.eth.getBalance(accounts[0]);
+		finalBalance = new BN(finalBalance);
+
+
+		assert(
+			finalBalance.gt(initialBalance), 
+			`Incorrect balance of owner wallet after ETH withdrawal.`
+			+ `\n\tExpected balance to be greater than: ${initialBalance.toString(10)}`
+		 	+ `\n\tActual balance is equal to: 			${finalBalance.toString(10)}`,
+	 	);
+	});
 });
