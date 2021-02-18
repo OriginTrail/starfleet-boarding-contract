@@ -55,6 +55,11 @@ contract('StarfleetStake', async function(accounts) {
 				assert.notEqual(owner, accounts[1]);
 			});
 
+			it("Token address correct", async () => {
+				let token_address = await stakingContract.getTokenAddress.call();
+				assert.equal(token_address, token.address);
+			});
+
 			it("Contract manager cannot renounce ownership", async () => {
 				await truffleAssert.reverts(stakingContract.renounceOwnership(),
 					"Cannot renounce ownership of contract");
@@ -482,15 +487,12 @@ contract('StarfleetStake', async function(accounts) {
 		
 		truffleAssert.eventEmitted(result, 'EthReceived');
 		let balance = await web3.eth.getBalance(suicidal_contract.address);
-		console.log(balance);
 		assert.equal(balance!=0, false);
 
 		await suicidal_contract.dieAndSendETH(suicidal_contract.address, { value: ETHER, from: accounts[0]});
 
 		// await suicidal_contract.dieAndSendETH(stakingContract.address);
 		let balance1 = await web3.eth.getBalance(stakingContract.address);
-		console.log(balance1);
-
 		let tx = await stakingContract.withdrawMisplacedEther();
 
 		truffleAssert.eventEmitted(tx, 'MisplacedEtherWithdrawn');

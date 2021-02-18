@@ -107,6 +107,10 @@ contract StarfleetStake is Ownable {
 
     }
 
+    function getTokenAddress() public view returns(address){
+        return address(token);
+    }
+
     function getStake(address participant) public view returns(uint256){
         return stake[participant];
     }
