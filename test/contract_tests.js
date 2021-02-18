@@ -32,19 +32,17 @@ beforeEach(async () => {
 	token = await TestTraceToken.deployed();
 	stakingContract = await StarfleetStake.deployed();
 	
-
 });
 
 
 contract('StarfleetStake', async function(accounts) {
 
 
-
 	describe('Token holder deposit functionality checks ', function() {
 
 		describe('StarfleetStake & Token basic checks', function() {
 			it('Sanity check', async function() {
-				assert( true === true, 'this is true' )
+				assert( true === true, 'this is true');
 			});
 
 			it("Account 0 (Contract manager) should be owner", async () => {
@@ -75,6 +73,15 @@ contract('StarfleetStake', async function(accounts) {
 				
 			});
 
+			it('Cannot mistake TRAC address', async function() {
+				let new_staking_contract = await StarfleetStake.new(0,"0x0000000000000000000000000000000000000000");
+				let result = await truffleAssert.createTransactionResult(new_staking_contract, new_staking_contract.transactionHash);
+
+				truffleAssert.eventEmitted(result, 'TokenAddressSet', {
+					token_address: "0xaA7a9CA87d3694B5755f213B5D04094b8d0F0A6F"
+				});
+			});
+
 			it("Staking contract should have 0 tokens at deployment", async () => {
 				assert.equal(await token.balanceOf( stakingContract.address), 0);
 			});
@@ -86,17 +93,8 @@ contract('StarfleetStake', async function(accounts) {
 			});
 
 			it("Staking contract should not accept ETH", async () => {
-				await truffleAssert.reverts(stakingContract.sendTransaction({amount: ETHER}));
+				await truffleAssert.reverts(stakingContract.sendTransaction({value: ETHER}));
 			});
-
-			// it('Cannot mistake TRAC address', async function() {
-				
-			// 	let new_staking_contract = await StarfleetStake.new(0,"0x0000000000000000000000000000000000000000");
-			// 	let trac_address = await new_staking_contract.token.call();
-			// 	console.log(trac_address);
-			// 	assert(trac_address === "0xaA7a9CA87d3694B5755f213B5D04094b8d0F0A6F");
-
-			// });
 
 		});
 
@@ -107,6 +105,11 @@ contract('StarfleetStake', async function(accounts) {
 			it('Token holders cannot try to deposit a zero amount',async function(){
 				let approve = await token.approve(stakingContract.address, 1000, {from: accounts[0]});
 				await truffleAssert.reverts( stakingContract.depositTokens(0, {from: accounts[0]}) );
+			});
+
+			it('Token holders cannot try to deposit if not enough tokens have been approved',async function(){
+				let approve = await token.approve(stakingContract.address, 1000, {from: accounts[0]});
+				await truffleAssert.reverts( stakingContract.depositTokens(2000, {from: accounts[0]}) );
 			});
 
 			it('Token holder can deposit 1000 tokens before boarding period has expired', async function() {
@@ -192,6 +195,31 @@ contract('StarfleetStake', async function(accounts) {
 			await truffleAssert.reverts( stakingContract.withdrawTokens( {from: accounts[2]} ) );
 		});
 
+
+		it('Contract manager cannot transfer funds if minimum threshold not reached', async function(){
+			const custodian = await MultiSig.new([accounts[0], accounts[1]], { from: accounts[0] });
+			assert.equal(await stakingContract.isMinimumReached(), false);
+			await truffleAssert.reverts( stakingContract.transferTokens(custodian.address ,{from : accounts[0]}) );
+
+		});
+
+
+		it('Contract manager cannot accountStarTRAC if minimum threshold not reached', async function(){
+			let contributors = [ accounts[6], accounts[7] ];
+			let amounts = [ 123 , 456];
+			assert.equal(await stakingContract.isMinimumReached(), false);
+			await truffleAssert.reverts( stakingContract.accountStarTRAC(contributors, amounts, {from : accounts[0]}) );
+
+		});
+
+		it('Contract manager cannot use fallbackWithdrawTokens before end of bridge period', async function(){
+
+			assert.equal(await stakingContract.isMinimumReached(), false);
+			await truffleAssert.reverts( stakingContract.fallbackWithdrawTokens({from : accounts[0]}) );
+
+		});
+
+
 		it('Withdrawing tokens updates the participant array correctly',async function() {
 			await token.transfer(accounts[4],1000, {from: accounts[0]});
 			await token.transfer(accounts[5],1000, {from: accounts[0]});
@@ -253,6 +281,23 @@ contract('StarfleetStake', async function(accounts) {
 
 		} );	
 
+
+		it('Contract manager cannot transfer funds to zero address', async function(){
+			
+			assert.equal(await stakingContract.isMinimumReached(), true);
+			await truffleAssert.reverts( stakingContract.transferTokens("0x0000000000000000000000000000000000000000" ,{from : accounts[0]}) );
+
+		});
+
+		it('Cannot account starTRAC tokens before end of bridge period', async function(){
+			
+			assert.equal(await stakingContract.isMinimumReached(), true);
+
+			let contributors = [ accounts[6], accounts[7] ];
+			let amounts = [ 123 , 456];
+			await truffleAssert.reverts( stakingContract.accountStarTRAC(contributors, amounts, {from : accounts[0]}) );
+			
+		});
 
 		it('Contract manager cannot transfer funds before bridge launch window', async function(){
 
@@ -319,7 +364,7 @@ contract('StarfleetStake', async function(accounts) {
 			let balance = await token.balanceOf( accounts[1]);
 			assert.equal(balance.eq(web3.utils.toBN('1000')), true );
 
-		} );
+		});
 
 	});
 
@@ -327,6 +372,20 @@ contract('StarfleetStake', async function(accounts) {
 
 
 contract('StarfleetStake', async function(accounts) {
+
+	before(async () => {
+
+		token = await TestTraceToken.deployed();
+		stakingContract = await StarfleetStake.deployed();
+		// make sure min_threshold has been reached
+		assert.equal(await stakingContract.isMinimumReached(), false);
+		let sendTokensToAccount2 = await token.transfer(accounts[2],MIN_THRESHOLD, {from: accounts[0]});
+		let approve = await token.approve(stakingContract.address, MIN_THRESHOLD, {from: accounts[2]});
+		let deposit = await stakingContract.depositTokens(MIN_THRESHOLD, {from: accounts[2]});
+		assert.equal(await stakingContract.isMinimumReached(), true);
+
+
+	});
 
 
 	it('Contract manager cannot transfer funds after bridge launch window', async function(){
@@ -338,22 +397,46 @@ contract('StarfleetStake', async function(accounts) {
 
 	});
 
-
-	it('Contract manager can account StarTRAC after bridge period',async function() { 
-		let contributors = [ accounts[1], accounts[2], accounts[3], accounts[4], accounts[5] ];
-		let amounts = [ 1000,2000, 3000, 4000,5000 ];
-		await stakingContract.accountStarTRAC(contributors, amounts, {from: accounts[0]});
-		starTRACStake = await stakingContract.getStarTRACamount(accounts[1]);
-		assert.equal( starTRACStake.eq(web3.utils.toBN('1000')), true); 
-	} );
-
-
-	it('Reverts when arrays not the same length',async function() { 
+	it('accountStarTRAC reverts when arrays not the same length',async function() { 
 		let contributors = [ accounts[6], accounts[7] ];
 		let amounts = [ 123 ];
-		await truffleAssert.reverts( stakingContract.accountStarTRAC(contributors, amounts, {from: accounts[0]}) );
+		await truffleAssert.reverts( stakingContract.accountStarTRAC(contributors, amounts, true, {from: accounts[0]}) );
 		
-	} );
+	});
+
+
+	it('Contract manager can account StarTRAC after bridge period (overwrite false)',async function() { 
+
+		let contributors = [ accounts[1], accounts[2], accounts[3], accounts[4], accounts[5] ];
+		let amounts = [ 1000, 2000, 3000, 4000, 5000 ];
+		await stakingContract.accountStarTRAC(contributors, amounts, false, {from: accounts[0]});
+		let starTRACStake = await stakingContract.getStarTRACamount(accounts[3]);
+		assert.equal( starTRACStake.eq(web3.utils.toBN('3000')), true); 
+	});
+
+	it('Contract manager can overwrite mistaken value (overwrite true)',async function() { 
+
+		let contributors = [ accounts[3]];
+		let amounts = [ 4000 ];
+
+		starTRACStake = await stakingContract.getStarTRACamount(accounts[3]);
+		assert.equal( starTRACStake.eq(web3.utils.toBN('3000')), true); 
+		await stakingContract.accountStarTRAC(contributors, amounts, true, {from: accounts[0]});
+		starTRACStake_new = await stakingContract.getStarTRACamount(accounts[3]);
+		assert.equal( starTRACStake_new.eq(web3.utils.toBN('4000')), true); 
+	});
+
+	it('Contract manager cannot overwrite by accident (overwrite false)',async function() { 
+
+		let contributors = [ accounts[3]];
+		let amounts = [ 2999 ];
+
+		starTRACStake = await stakingContract.getStarTRACamount(accounts[3]);
+		assert.equal( starTRACStake.eq(web3.utils.toBN('4000')), true); 
+		await stakingContract.accountStarTRAC(contributors, amounts, false, {from: accounts[0]});
+		starTRACStake = await stakingContract.getStarTRACamount(accounts[3]);
+		assert.equal( starTRACStake.eq(web3.utils.toBN('4000')), true); 
+	});
 
 
 	it('Token holder can claim StarTRAC when StarTRAC snapshot is available',async function() { 
@@ -362,19 +445,19 @@ contract('StarfleetStake', async function(accounts) {
 		assert.equal( StarTRACbalance.eq(web3.utils.toBN('0')), true); 
 		let balance = await token.balanceOf( accounts[1]);
 		assert.equal(balance.eq(web3.utils.toBN('1000')), true);
-	} );
+	});
 	
 	it('Token holder cannot claim StarTRAC twice',async function() { 
 		let StarTRACbalance = await stakingContract.getStarTRACamount( accounts[1]);
 		assert.equal( StarTRACbalance.eq(web3.utils.toBN('0')), true); 
 		await truffleAssert.reverts(stakingContract.fallbackWithdrawTokens({ from: accounts[1] }));
-	} );
+	});
 
 
 	it('Cannot withdraw TRAC with withdrawMisplacedTokens',async function() { 
 		
 		await truffleAssert.reverts(stakingContract.withdrawMisplacedTokens(token.address));
-	} );
+	});
 
 
 	it('Can withdraw non-TRAC tokens with withdrawMisplacedTokens',async function() { 
@@ -388,18 +471,30 @@ contract('StarfleetStake', async function(accounts) {
 		await stakingContract.withdrawMisplacedTokens(another_token.address);
 		balance_of_contract = await another_token.balanceOf( stakingContract.address);
 		assert.equal(balance_of_contract.eq(web3.utils.toBN(0)), true);
-	} );
+	});
 
 
 	it('In case of accidental Ether through selfDestruct, the withdrawMisplacedEther should be able to send to owner',async function() { 
 
 		const suicidal_contract = await Suicidal.new([], { from: accounts[0] });
-		await suicidal_contract.sendTransaction({ value: ETHER, from: accounts[0]});
-		let balance = await web3.eth.getBalance(suicidal_contract.address);
-		await suicidal_contract.dieAndSendETH(stakingContract.address);
-		let balance1 = await web3.eth.getBalance(stakingContract.address);
+		let result = await suicidal_contract.sendTransaction({value: ETHER, from: accounts[0] })
 
-		assert.equal(balance == 0,true);
+		
+		truffleAssert.eventEmitted(result, 'EthReceived');
+		let balance = await web3.eth.getBalance(suicidal_contract.address);
+		console.log(balance);
+		assert.equal(balance!=0, false);
+
+		await suicidal_contract.dieAndSendETH(suicidal_contract.address, { value: ETHER, from: accounts[0]});
+
+		// await suicidal_contract.dieAndSendETH(stakingContract.address);
+		let balance1 = await web3.eth.getBalance(stakingContract.address);
+		console.log(balance1);
+
+		let tx = await stakingContract.withdrawMisplacedEther();
+
+		truffleAssert.eventEmitted(tx, 'MisplacedEtherWithdrawn');
+		
 	});
 
 });
