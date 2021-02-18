@@ -70,14 +70,14 @@ module.exports = {
         account: testnet_wallet,
         staking_address: testnet_address,
         owner_address: `${process.env.TESTNET_OWNER_ADDRESS}`,
-        token_address: '0x98d9a611ad1b5761bdc1daac42c48e4d54cf5882',
+        token_address: '0x98d9A611Ad1b5761bdC1dAAc42c48E4d54CF5882',
     },
     mainnet: {
         rpc_endpoint : `${process.env.MAINNET_RPC_ENDPOINT}`,
-        start_time: 1613579313,
+        start_time: 1613660400,
         account: mainnet_wallet,
         staking_address: mainnet_address,
         owner_address: `${process.env.MAINNET_OWNER_ADDRESS}`,
-        token_address: '0xaa7a9ca87d3694b5755f213b5d04094b8d0f0a6f',
+        token_address: '0xaA7a9CA87d3694B5755f213B5D04094b8d0F0A6F',
     },
 };

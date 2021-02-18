@@ -66,6 +66,13 @@ async function main() {
         checksFailed += 1;
     }
 
+    let token_address = await stakeContract.methods.getTokenAddress().call();
+    console.log(`token_address: ${token_address}`);
+    if (token_address !== constants.token_address) {
+        reportError('token_address does not match', constants.token_address, token_address);
+        checksFailed += 1;
+    }
+
     let boardingPeriodLength = await stakeContract.methods.BOARDING_PERIOD_LENGTH().call();
     boardingPeriodLength = parseInt(boardingPeriodLength);
     console.log(`boardingPeriodLength: ${boardingPeriodLength}`);

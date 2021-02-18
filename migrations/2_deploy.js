@@ -16,10 +16,10 @@ module.exports = function (deployer, network, accounts) {
 
     if (network === 'ganache' || network === 'development') {
         deployer.deploy(TestTraceToken).then(function () {
-            return deployer.deploy(StarfleetStake, startTime, TestTraceToken.address).then(async function (stakingContract) {
-                await stakingContract.transferOwnership(newOwner);
-                const data = { address: stakingContract.address };
-                fs.writeFileSync(address_filepath, JSON.stringify(data, null, 4));
+            return deployer.deploy(StarfleetStake, 0, TestTraceToken.address).then(async function (stakingContract) {
+                // await stakingContract.transferOwnership(newOwner);
+                // const data = { address: stakingContract.address };
+                // fs.writeFileSync(address_filepath, JSON.stringify(data, null, 4));
             });
         });
     }
